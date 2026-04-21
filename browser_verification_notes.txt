@@ -1,0 +1,18 @@
+Initial preview verification for PE App Portal:
+- Hero section loaded correctly with dark neo-industrial control-room styling and generated hero image.
+- Widget strip rendered all 6 cards.
+- Live data checks observed from browser markdown: time widget updates, weather returned 28°C / Clear, AQI returned 74 with Thai status, gold widget failed gracefully to 'ไม่มีข้อมูล', SET Index and AI widgets showed 'ตั้งค่าใน CONFIG' fallback as intended.
+- Applications section rendered all 6 app cards with correct names and status badges.
+- Quick Links section showed locked overlay correctly.
+- Attempt to click login button via indexed browser action failed because the indexed element could not be relocated after interaction lookup; needs retry with fresh page state.
+Additional browser verification:
+- Refreshed preview confirmed the same rendered content and layout consistency.
+- Indexed browser click on the visible login button failed again due to element relocation mismatch in the browser automation layer, so the UI itself still needs validation by an alternate interaction method rather than suggesting a page defect.
+Modal verification result:
+- Programmatic trigger on #open-login succeeded and returned modalActive=true with aria-hidden=false.
+- Subsequent preview confirmed the login modal is visible with email field, password field, cancel button, and login button rendered correctly.
+- The protected overlay flow therefore works even though direct indexed click relocation was unstable in the browser automation layer.
+Authentication verification result:
+- Filling the modal with the specified email and password succeeded.
+- Submitting the login form unlocked the quick links section successfully.
+- Post-login preview showed the admin bar with a visible Logout button and active sheet links for the populated URLs.
