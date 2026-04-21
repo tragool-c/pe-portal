@@ -820,14 +820,9 @@
         letter-spacing: 0.04em;
       }
 
-      .footer-copy,
-      .credit-line {
+      .footer-copy {
         margin: 0;
         color: var(--text-2);
-      }
-
-      .credit-line {
-        color: var(--text-3);
       }
 
       .mini-card {
@@ -1037,44 +1032,6 @@
           letter-spacing: 0.14em;
         }
       }
-
-      /* ===== Config FAB (CONFIG URL setting button) ===== */
-      .config-fab {
-        position: fixed;
-        bottom: 18px;
-        right: 18px;
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        border: 1px solid var(--border-strong);
-        background: rgba(15, 24, 41, 0.86);
-        color: var(--text-2);
-        cursor: pointer;
-        font-size: 18px;
-        line-height: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 40;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-      }
-      .config-fab:hover {
-        background: var(--surface-2);
-        border-color: var(--cyan);
-        color: var(--cyan-light);
-        transform: translateY(-2px);
-      }
-      .config-fab:focus-visible {
-        outline: 2px solid var(--cyan);
-        outline-offset: 2px;
-      }
-      .config-fab.has-config {
-        border-color: var(--cyan);
-        color: var(--cyan-light);
-      }
     </style>
   </head>
   <body>
@@ -1165,27 +1122,6 @@
           </div>
         </div>
       </section>
-
-      <footer class="footer section">
-        <div class="footer-inner">
-          <div class="footer-card">
-            <div class="footer-grid">
-              <div class="mini-card">
-                <div class="mini-tag">Contact</div>
-                <h3 class="footer-title">PE App Portal</h3>
-                <p class="footer-copy">ตระกูล ไชยบำรุง (Tang) · ผู้ช่วยผู้จัดการ · แผนก Production Engineering (PE)</p>
-                <p class="footer-copy">Kubota Precision Machinery (Thailand) Co., Ltd. · Pinthong 3 · Sriracha · Chonburi</p>
-              </div>
-              <div class="mini-card">
-                <div class="mini-tag">Credit</div>
-                <p class="mini-value">ตระกูล ไชยบำรุง<br />ผู้ช่วยผู้จัดการ | แผนก Production Engineering (PE)<br />KPMT (Kubota Precision Machinery Thailand)</p>
-              </div>
-            </div>
-            <div class="fade-divider"></div>
-            <p class="credit-line">ตระกูล ไชยบำรุง · ผู้ช่วยผู้จัดการ · แผนก Production Engineering (PE)</p>
-          </div>
-        </div>
-      </footer>
     </div>
 
     <div id="login-modal" class="modal" aria-hidden="true">
@@ -1208,28 +1144,6 @@
         <div class="modal-row">
           <button id="close-login" class="modal-cancel" type="button">ยกเลิก</button>
           <button id="submit-login" class="modal-submit" type="button">Login</button>
-        </div>
-      </div>
-    </div>
-
-    <button id="config-fab" class="config-fab" type="button" aria-label="ตั้งค่า CONFIG URL" title="ตั้งค่า CONFIG URL">⚙️</button>
-
-    <div id="config-modal" class="modal" aria-hidden="true">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="config-title">
-        <div class="mini-tag">Widget Configuration</div>
-        <h3 id="config-title" class="modal-title">ตั้งค่า CONFIG URL</h3>
-        <p class="modal-copy">วาง Google Sheet Published CSV URL สำหรับ widget SET Index + AI Trend · กด Save แล้วหน้าจะ reload ด้วย ?config=URL</p>
-        <div class="form-grid">
-          <label class="input-field">
-            <span class="input-label">Published CSV URL</span>
-            <input id="config-url-input" class="input-control" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" autocomplete="off" />
-          </label>
-        </div>
-        <div id="config-error" class="error-text"></div>
-        <div class="helper-text">ลบ ?config=... ออกจาก URL เพื่อ reset · ค่าไม่ถูกเก็บใน localStorage · ใช้ bookmark แทน</div>
-        <div class="modal-row">
-          <button id="close-config" class="modal-cancel" type="button">ยกเลิก</button>
-          <button id="submit-config" class="modal-submit" type="button">Save &amp; Reload</button>
         </div>
       </div>
     </div>
@@ -1312,14 +1226,6 @@
         { name: 'Machine Master', sub: 'Backend — 340 Machines', url: '' }
       ];
 
-      // CONFIG_URL อ่านจาก ?config=... บน URL ก่อน ถ้าไม่มี fallback เป็น '' (empty)
-      const CONFIG_URL = (() => {
-        try {
-          return new URLSearchParams(window.location.search).get('config') || '';
-        } catch (e) {
-          return '';
-        }
-      })();
       const QUICK_LINK_HASH = '25d7a2c39f7d99a1d89a50edbe0a32d19bb4704b8d5aa74b7d77bcaf407a3ba8';
       const WEATHER_URL = 'https://wttr.in/Sriracha,Thailand?format=j1';
       const AQI_URL = 'https://api.waqi.info/feed/chonburi/?token=demo';
@@ -1329,13 +1235,10 @@
 
       const state = {
         unlocked: false,
-        config: null,
         widgets: {
           weather: null,
           aqi: null,
           gold: null,
-          setIndex: null,
-          aiTrend: null,
         },
       };
 
@@ -1344,8 +1247,6 @@
         { key: 'weather', label: 'สภาพอากาศ', icon: '🌤️', loading: true },
         { key: 'aqi', label: 'คุณภาพอากาศ', icon: '💨', loading: true },
         { key: 'gold', label: 'ทองคำ', icon: '💰', loading: true },
-        { key: 'setIndex', label: 'SET Index', icon: '📈' },
-        { key: 'aiTrend', label: 'AI · World', icon: '🤖' }
       ];
 
       const colorMap = {
@@ -1371,12 +1272,6 @@
         loginError: document.getElementById('login-error'),
         logoutButton: document.getElementById('logout-button'),
         adminBar: document.getElementById('admin-bar'),
-        configFab: document.getElementById('config-fab'),
-        configModal: document.getElementById('config-modal'),
-        closeConfig: document.getElementById('close-config'),
-        submitConfig: document.getElementById('submit-config'),
-        configUrlInput: document.getElementById('config-url-input'),
-        configError: document.getElementById('config-error'),
       };
 
       function thaiDateFull(date) {
@@ -1427,8 +1322,6 @@
         widgetDefinitions.forEach(def => el.widgetGrid.appendChild(createWidgetCard(def)));
         updateClock();
         ['weather', 'aqi', 'gold'].forEach((key) => setWidgetLoading(key));
-        setWidgetValue('setIndex', 'ตั้งค่าใน CONFIG', 'ยังไม่มี CONFIG_URL', 'เพิ่ม Published CSV URL ใน code');
-        setWidgetValue('aiTrend', 'ตั้งค่าใน CONFIG', 'ยังไม่มี CONFIG_URL', 'เพิ่ม Published CSV URL ใน code');
       }
 
       function setWidgetLoading(key) {
@@ -1557,43 +1450,11 @@
         setWidgetValue('gold', 'ไม่มีข้อมูล', 'Gold API ไม่ตอบกลับ', 'ทั้ง primary และ backup ไม่ตอบ');
       }
 
-      function parseCsv(text) {
-        return text
-          .split(/\r?\n/)
-          .map(line => line.trim())
-          .filter(Boolean)
-          .map(line => {
-            const parts = line.split(',');
-            return { key: (parts[0] || '').trim(), value: parts.slice(1).join(',').trim() };
-          });
-      }
-
-      async function loadConfigWidgets() {
-        if (!CONFIG_URL) {
-          setWidgetValue('setIndex', 'ตั้งค่าใน CONFIG', 'ยังไม่มี CONFIG_URL', 'เพิ่ม Published CSV URL ใน code');
-          setWidgetValue('aiTrend', 'ตั้งค่าใน CONFIG', 'ยังไม่มี CONFIG_URL', 'เพิ่ม Published CSV URL ใน code');
-          return;
-        }
-
-        try {
-          const text = await fetchText(CONFIG_URL);
-          const rows = parseCsv(text);
-          const config = Object.fromEntries(rows.map(row => [row.key, row.value]));
-          state.config = config;
-          setWidgetValue('setIndex', config.SET_INDEX || 'ตั้งค่าใน CONFIG', 'Published Google Sheet CSV', 'CONFIG · KEY=SET_INDEX');
-          setWidgetValue('aiTrend', config.AI_TREND || 'ตั้งค่าใน CONFIG', 'Published Google Sheet CSV', 'CONFIG · KEY=AI_TREND');
-        } catch (error) {
-          setWidgetValue('setIndex', 'ไม่มีข้อมูล', 'อ่าน CONFIG ไม่สำเร็จ', 'ตรวจ Published CSV URL');
-          setWidgetValue('aiTrend', 'ไม่มีข้อมูล', 'อ่าน CONFIG ไม่สำเร็จ', 'ตรวจ Published CSV URL');
-        }
-      }
-
       async function refreshWidgets() {
         await Promise.allSettled([
           loadWeather(),
           loadAqi(),
           loadGold(),
-          loadConfigWidgets(),
         ]);
       }
 
@@ -1698,42 +1559,6 @@
         syncAuthUi();
       }
 
-      function openConfigModal() {
-        el.configError.textContent = '';
-        el.configUrlInput.value = CONFIG_URL || '';
-        el.configModal.classList.add('active');
-        el.configModal.setAttribute('aria-hidden', 'false');
-        setTimeout(() => {
-          el.configUrlInput.focus();
-          el.configUrlInput.select();
-        }, 30);
-      }
-
-      function closeConfigModal() {
-        el.configModal.classList.remove('active');
-        el.configModal.setAttribute('aria-hidden', 'true');
-      }
-
-      function submitConfig() {
-        const url = el.configUrlInput.value.trim();
-        if (!url) {
-          el.configError.textContent = 'กรุณาวาง Published CSV URL';
-          return;
-        }
-        try {
-          const parsed = new URL(url);
-          if (!/^https?:$/.test(parsed.protocol)) {
-            el.configError.textContent = 'ต้องเป็น http(s) URL';
-            return;
-          }
-        } catch (e) {
-          el.configError.textContent = 'URL ไม่ถูกต้อง';
-          return;
-        }
-        const base = window.location.origin + window.location.pathname;
-        window.location.href = `${base}?config=${encodeURIComponent(url)}`;
-      }
-
       function initEvents() {
         el.openLogin.addEventListener('click', openLoginModal);
         el.closeLogin.addEventListener('click', closeLoginModal);
@@ -1743,25 +1568,12 @@
           if (event.target === el.loginModal) closeLoginModal();
         });
 
-        el.configFab.addEventListener('click', openConfigModal);
-        el.closeConfig.addEventListener('click', closeConfigModal);
-        el.submitConfig.addEventListener('click', submitConfig);
-        el.configModal.addEventListener('click', (event) => {
-          if (event.target === el.configModal) closeConfigModal();
-        });
-        if (CONFIG_URL) {
-          el.configFab.classList.add('has-config');
-          el.configFab.title = 'CONFIG ตั้งค่าไว้แล้ว · กดเพื่อแก้';
-        }
-
         document.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape') {
-            if (el.loginModal.classList.contains('active')) closeLoginModal();
-            if (el.configModal.classList.contains('active')) closeConfigModal();
+          if (event.key === 'Escape' && el.loginModal.classList.contains('active')) {
+            closeLoginModal();
           }
-          if (event.key === 'Enter') {
-            if (el.loginModal.classList.contains('active')) submitLogin();
-            else if (el.configModal.classList.contains('active')) submitConfig();
+          if (event.key === 'Enter' && el.loginModal.classList.contains('active')) {
+            submitLogin();
           }
         });
       }
@@ -1779,16 +1591,6 @@
       }
 
       initPortal();
-
-      /*
-        CONFIG จาก Google Sheet (สำหรับ SET Index + AI Trend)
-        1) สร้าง Google Sheet มี 2 column: KEY | VALUE
-        2) ใส่แถว: SET_INDEX | 1385.42
-        3) ใส่แถว: AI_TREND | Claude Opus 4 released
-        4) File → Share → Publish to web → Sheet "CONFIG" → CSV
-        5) Copy URL มาใส่ใน const CONFIG_URL = "..." ด้านบน
-        6) ถ้ายังไม่ตั้งค่า widget จะแสดง "ตั้งค่าใน CONFIG" โดยไม่ crash
-      */
     </script>
   </body>
 </html>
