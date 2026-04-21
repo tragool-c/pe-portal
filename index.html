@@ -530,6 +530,7 @@
         border: 1px solid transparent;
         transition: border-color 220ms ease, transform 220ms ease, opacity 220ms ease;
         opacity: 0;
+        pointer-events: none;
       }
 
       .app-card:hover {
@@ -1036,6 +1037,44 @@
           letter-spacing: 0.14em;
         }
       }
+
+      /* ===== Config FAB (CONFIG URL setting button) ===== */
+      .config-fab {
+        position: fixed;
+        bottom: 18px;
+        right: 18px;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 1px solid var(--border-strong);
+        background: rgba(15, 24, 41, 0.86);
+        color: var(--text-2);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 40;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      }
+      .config-fab:hover {
+        background: var(--surface-2);
+        border-color: var(--cyan);
+        color: var(--cyan-light);
+        transform: translateY(-2px);
+      }
+      .config-fab:focus-visible {
+        outline: 2px solid var(--cyan);
+        outline-offset: 2px;
+      }
+      .config-fab.has-config {
+        border-color: var(--cyan);
+        color: var(--cyan-light);
+      }
     </style>
   </head>
   <body>
@@ -1173,6 +1212,28 @@
       </div>
     </div>
 
+    <button id="config-fab" class="config-fab" type="button" aria-label="ตั้งค่า CONFIG URL" title="ตั้งค่า CONFIG URL">⚙️</button>
+
+    <div id="config-modal" class="modal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="config-title">
+        <div class="mini-tag">Widget Configuration</div>
+        <h3 id="config-title" class="modal-title">ตั้งค่า CONFIG URL</h3>
+        <p class="modal-copy">วาง Google Sheet Published CSV URL สำหรับ widget SET Index + AI Trend · กด Save แล้วหน้าจะ reload ด้วย ?config=URL</p>
+        <div class="form-grid">
+          <label class="input-field">
+            <span class="input-label">Published CSV URL</span>
+            <input id="config-url-input" class="input-control" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" autocomplete="off" />
+          </label>
+        </div>
+        <div id="config-error" class="error-text"></div>
+        <div class="helper-text">ลบ ?config=... ออกจาก URL เพื่อ reset · ค่าไม่ถูกเก็บใน localStorage · ใช้ bookmark แทน</div>
+        <div class="modal-row">
+          <button id="close-config" class="modal-cancel" type="button">ยกเลิก</button>
+          <button id="submit-config" class="modal-submit" type="button">Save &amp; Reload</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       /*
         File Guidance: Single-file portal only. If modifying app list in future,
@@ -1251,11 +1312,19 @@
         { name: 'Machine Master', sub: 'Backend — 340 Machines', url: '' }
       ];
 
-      const CONFIG_URL = '';
+      // CONFIG_URL อ่านจาก ?config=... บน URL ก่อน ถ้าไม่มี fallback เป็น '' (empty)
+      const CONFIG_URL = (() => {
+        try {
+          return new URLSearchParams(window.location.search).get('config') || '';
+        } catch (e) {
+          return '';
+        }
+      })();
       const QUICK_LINK_HASH = '25d7a2c39f7d99a1d89a50edbe0a32d19bb4704b8d5aa74b7d77bcaf407a3ba8';
       const WEATHER_URL = 'https://wttr.in/Sriracha,Thailand?format=j1';
       const AQI_URL = 'https://api.waqi.info/feed/chonburi/?token=demo';
       const GOLD_URL = 'https://api.metals.live/v1/spot/gold';
+      const GOLD_URL_BACKUP = 'https://api.gold-api.com/price/XAU';
       const REFRESH_INTERVAL = 10 * 60 * 1000;
 
       const state = {
@@ -1302,6 +1371,12 @@
         loginError: document.getElementById('login-error'),
         logoutButton: document.getElementById('logout-button'),
         adminBar: document.getElementById('admin-bar'),
+        configFab: document.getElementById('config-fab'),
+        configModal: document.getElementById('config-modal'),
+        closeConfig: document.getElementById('close-config'),
+        submitConfig: document.getElementById('submit-config'),
+        configUrlInput: document.getElementById('config-url-input'),
+        configError: document.getElementById('config-error'),
       };
 
       function thaiDateFull(date) {
@@ -1449,14 +1524,37 @@
 
       async function loadGold() {
         setWidgetLoading('gold');
+
+        // Primary: metals.live
         try {
           const data = await fetchJson(GOLD_URL);
           const price = normalizeGoldPrice(data);
-          const formatted = Number(price).toLocaleString('en-US', { maximumFractionDigits: 2 });
-          setWidgetValue('gold', `${formatted}`, 'USD/oz', 'metals.live · auto refresh 10 นาที');
+          const num = Number(price);
+          if (price != null && Number.isFinite(num) && num > 0) {
+            const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            setWidgetValue('gold', `${formatted}`, 'USD/oz', 'metals.live · auto refresh 10 นาที');
+            return;
+          }
         } catch (error) {
-          setWidgetValue('gold', 'ไม่มีข้อมูล', 'Gold API ไม่ตอบกลับ', 'แสดง fallback โดยไม่ crash');
+          // silent — fall through to backup
         }
+
+        // Backup: gold-api.com (free, no key)
+        try {
+          const data = await fetchJson(GOLD_URL_BACKUP);
+          const price = data && (data.price ?? data.gold ?? data.value);
+          const num = Number(price);
+          if (Number.isFinite(num) && num > 0) {
+            const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            setWidgetValue('gold', `${formatted}`, 'USD/oz', 'gold-api.com · backup source');
+            return;
+          }
+        } catch (error) {
+          // silent — final fallback below
+        }
+
+        // Final fallback: no crash, just "ไม่มีข้อมูล"
+        setWidgetValue('gold', 'ไม่มีข้อมูล', 'Gold API ไม่ตอบกลับ', 'ทั้ง primary และ backup ไม่ตอบ');
       }
 
       function parseCsv(text) {
@@ -1600,6 +1698,42 @@
         syncAuthUi();
       }
 
+      function openConfigModal() {
+        el.configError.textContent = '';
+        el.configUrlInput.value = CONFIG_URL || '';
+        el.configModal.classList.add('active');
+        el.configModal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => {
+          el.configUrlInput.focus();
+          el.configUrlInput.select();
+        }, 30);
+      }
+
+      function closeConfigModal() {
+        el.configModal.classList.remove('active');
+        el.configModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function submitConfig() {
+        const url = el.configUrlInput.value.trim();
+        if (!url) {
+          el.configError.textContent = 'กรุณาวาง Published CSV URL';
+          return;
+        }
+        try {
+          const parsed = new URL(url);
+          if (!/^https?:$/.test(parsed.protocol)) {
+            el.configError.textContent = 'ต้องเป็น http(s) URL';
+            return;
+          }
+        } catch (e) {
+          el.configError.textContent = 'URL ไม่ถูกต้อง';
+          return;
+        }
+        const base = window.location.origin + window.location.pathname;
+        window.location.href = `${base}?config=${encodeURIComponent(url)}`;
+      }
+
       function initEvents() {
         el.openLogin.addEventListener('click', openLoginModal);
         el.closeLogin.addEventListener('click', closeLoginModal);
@@ -1608,12 +1742,26 @@
         el.loginModal.addEventListener('click', (event) => {
           if (event.target === el.loginModal) closeLoginModal();
         });
+
+        el.configFab.addEventListener('click', openConfigModal);
+        el.closeConfig.addEventListener('click', closeConfigModal);
+        el.submitConfig.addEventListener('click', submitConfig);
+        el.configModal.addEventListener('click', (event) => {
+          if (event.target === el.configModal) closeConfigModal();
+        });
+        if (CONFIG_URL) {
+          el.configFab.classList.add('has-config');
+          el.configFab.title = 'CONFIG ตั้งค่าไว้แล้ว · กดเพื่อแก้';
+        }
+
         document.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape' && el.loginModal.classList.contains('active')) {
-            closeLoginModal();
+          if (event.key === 'Escape') {
+            if (el.loginModal.classList.contains('active')) closeLoginModal();
+            if (el.configModal.classList.contains('active')) closeConfigModal();
           }
-          if (event.key === 'Enter' && el.loginModal.classList.contains('active')) {
-            submitLogin();
+          if (event.key === 'Enter') {
+            if (el.loginModal.classList.contains('active')) submitLogin();
+            else if (el.configModal.classList.contains('active')) submitConfig();
           }
         });
       }
